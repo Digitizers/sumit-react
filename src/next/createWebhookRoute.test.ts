@@ -110,4 +110,21 @@ describe("verifySumitSharedSecret", () => {
     );
     expect(ok).toBe(false);
   });
+
+  it("rejects candidates of different lengths without leaking via early return", async () => {
+    const verifier = verifySumitSharedSecret("super-secret-value");
+    // A short and a long wrong candidate must both reject. The comparison
+    // hashes both inputs, so neither returns synchronously on length mismatch.
+    const short = await verifier(
+      new Request("https://example.com/", { method: "POST", headers: { "x-sumit-secret": "x" } }),
+    );
+    const long = await verifier(
+      new Request("https://example.com/", {
+        method: "POST",
+        headers: { "x-sumit-secret": "x".repeat(1024) },
+      }),
+    );
+    expect(short).toBe(false);
+    expect(long).toBe(false);
+  });
 });

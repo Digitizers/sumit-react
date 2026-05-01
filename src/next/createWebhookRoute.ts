@@ -54,12 +54,12 @@ export function createSumitWebhookRoute(config: SumitWebhookRouteConfig): SumitW
 export function verifySumitSharedSecret(secret: string, options: { header?: string; queryParam?: string } = {}): SumitWebhookVerifier {
   const headerName = (options.header ?? "x-sumit-secret").toLowerCase();
   const queryParam = options.queryParam ?? "secret";
-  return (request) => {
+  return async (request) => {
     const headerValue = request.headers.get(headerName);
-    if (headerValue && timingSafeEqual(headerValue, secret)) return true;
+    if (headerValue && (await timingSafeEqual(headerValue, secret))) return true;
     const url = new URL(request.url);
     const queryValue = url.searchParams.get(queryParam);
-    return Boolean(queryValue && timingSafeEqual(queryValue, secret));
+    return Boolean(queryValue && (await timingSafeEqual(queryValue, secret)));
   };
 }
 
@@ -81,11 +81,20 @@ async function readPayload(request: Request): Promise<unknown> {
   }
 }
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
+// Hash both inputs to a fixed-length digest before comparing so the comparison
+// is constant-time AND independent of secret length — a plain length check
+// leaks the byte-length of the secret via response timing.
+async function timingSafeEqual(a: string, b: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const [digestA, digestB] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(a)),
+    crypto.subtle.digest("SHA-256", encoder.encode(b)),
+  ]);
+  const viewA = new Uint8Array(digestA);
+  const viewB = new Uint8Array(digestB);
   let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < viewA.length; i++) {
+    mismatch |= viewA[i] ^ viewB[i];
   }
   return mismatch === 0;
 }

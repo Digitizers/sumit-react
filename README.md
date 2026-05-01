@@ -1,5 +1,11 @@
 # @digitizers/sumit-react
 
+[![npm](https://img.shields.io/npm/v/@digitizers/sumit-react.svg)](https://www.npmjs.com/package/@digitizers/sumit-react)
+[![types](https://img.shields.io/npm/types/@digitizers/sumit-react.svg)](https://www.npmjs.com/package/@digitizers/sumit-react)
+[![license](https://img.shields.io/npm/l/@digitizers/sumit-react.svg)](LICENSE)
+[![react](https://img.shields.io/badge/react-%E2%89%A518-61DAFB?logo=react&logoColor=white)](package.json)
+[![next](https://img.shields.io/badge/next.js-app%20router-000000?logo=next.js&logoColor=white)](https://nextjs.org)
+
 > React components and Next.js route helpers for [SUMIT / OfficeGuy / Upay](https://sumit.co.il) payments. The companion to [`@digitizers/sumit-api`](https://github.com/Digitizers/sumit-api).
 
 Ship a working SUMIT checkout flow in a React or Next.js app with two files: a Client Component and a route handler.
@@ -147,6 +153,18 @@ Accepts JSON, `application/x-www-form-urlencoded`, and SUMIT's `json=<serialized
 | `dev`                    | `http://dev.sumit.co.il/scripts/payments.js`       |
 
 `companyId` and `apiPublicKey` are safe to expose to the browser. The `apiKey` (without "Public") is **server-only** and must never reach the client.
+
+---
+
+## Security
+
+| Concern | How it's handled |
+| --- | --- |
+| **Card data exposure** | SUMIT's `payments.js` reads card fields directly and returns a `SingleUseToken`. Card numbers, expiry, and CVV never reach your server or your component state. |
+| **Server credential leakage** | The full `apiKey` lives only in `createSumitChargeRoute`; `./client` and `./next` are separate exports so client bundles cannot transitively pull the server secret. |
+| **Webhook spoofing** | `verifySumitSharedSecret` hashes both the candidate and the secret to a fixed 32-byte digest before comparing — the comparison is constant-time **and** length-independent, so response timing leaks neither secret content nor secret length. |
+| **Double-submit / token reuse** | `<SumitCheckout />` uses a synchronous ref guard so two rapid submits cannot both fire `CreateToken` (single-use tokens are exactly that — single-use). |
+| **Logging sensitive data** | Every event the route helpers return passes through `redactSumitPayload` from `@digitizers/sumit-api`. |
 
 ---
 

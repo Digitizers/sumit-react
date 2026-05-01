@@ -77,14 +77,22 @@ export const SumitCheckout = forwardRef<SumitCheckoutHandle, SumitCheckoutProps>
   } = props;
 
   const formRef = useRef<HTMLFormElement>(null);
+  const submittingRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
 
   const mergedLabels = { ...DEFAULT_LABELS, ...labels };
 
+  const finishSubmitting = useCallback(() => {
+    submittingRef.current = false;
+    setSubmitting(false);
+  }, []);
+
   const tokenize = useCallback(async () => {
     const form = formRef.current;
-    if (!form || submitting) return;
-
+    // Ref check is synchronous and immune to React's batched state updates,
+    // closing the window where two rapid clicks both pass the guard.
+    if (!form || submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     onTokenizationStart?.();
 
@@ -102,14 +110,14 @@ export const SumitCheckout = forwardRef<SumitCheckoutHandle, SumitCheckoutProps>
         Callback: (token) => {
           if (!token) {
             onError?.(new Error("SUMIT tokenization failed"));
-            setSubmitting(false);
+            finishSubmitting();
             onTokenizationEnd?.();
             return;
           }
           Promise.resolve(onToken(token))
             .catch((error: unknown) => onError?.(error instanceof Error ? error : new Error(String(error))))
             .finally(() => {
-              setSubmitting(false);
+              finishSubmitting();
               onTokenizationEnd?.();
             });
         },
@@ -117,16 +125,16 @@ export const SumitCheckout = forwardRef<SumitCheckoutHandle, SumitCheckoutProps>
 
       const synchronous = sdk.CreateToken(settings);
       if (synchronous) {
-        setSubmitting(false);
+        finishSubmitting();
         onTokenizationEnd?.();
         onError?.(new Error("SUMIT tokenization returned synchronously (form may be invalid)"));
       }
     } catch (error) {
-      setSubmitting(false);
+      finishSubmitting();
       onTokenizationEnd?.();
       onError?.(error instanceof Error ? error : new Error(String(error)));
     }
-  }, [apiPublicKey, companyId, environment, language, onError, onToken, onTokenizationEnd, onTokenizationStart, submitting]);
+  }, [apiPublicKey, companyId, environment, language, onError, onToken, onTokenizationEnd, onTokenizationStart, finishSubmitting]);
 
   useImperativeHandle(
     ref,
