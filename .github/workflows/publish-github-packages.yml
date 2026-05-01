@@ -1,0 +1,110 @@
+name: Publish to GitHub Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run npm publish as a dry run"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-github-packages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sumit-react
+        uses: actions/checkout@v4
+        with:
+          path: sumit-react
+
+      - name: Checkout sumit-api peer package
+        uses: actions/checkout@v4
+        with:
+          repository: Digitizers/sumit-api
+          path: sumit-api
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            sumit-react/pnpm-lock.yaml
+            sumit-api/pnpm-lock.yaml
+          registry-url: https://npm.pkg.github.com
+
+      - name: Build sumit-api peer package
+        working-directory: sumit-api
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Install sumit-react
+        working-directory: sumit-react
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: sumit-react
+        run: pnpm typecheck
+
+      - name: Test
+        working-directory: sumit-react
+        run: pnpm test
+
+      - name: Build
+        working-directory: sumit-react
+        run: pnpm build
+
+      - name: Pack check
+        working-directory: sumit-react
+        run: npm pack --dry-run
+
+      - name: Build GitHub Packages tarball directory
+        working-directory: sumit-react
+        run: |
+          set -euo pipefail
+          PACK_JSON=$(npm pack --json --ignore-scripts)
+          PACK_FILE=$(printf '%s' "$PACK_JSON" | node -e "let s=''; process.stdin.on('data', d => s += d); process.stdin.on('end', () => { const start = s.indexOf('['); const p = JSON.parse(s.slice(start)); console.log(p[0].filename); });")
+          rm -rf .publish-ghpkg
+          mkdir .publish-ghpkg
+          tar -xzf "$PACK_FILE" -C .publish-ghpkg --strip-components=1
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = '.publish-ghpkg/package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+          pkg.name = '@digitizers/sumit-react';
+          pkg.publishConfig = {
+            registry: 'https://npm.pkg.github.com',
+            access: 'public'
+          };
+          fs.writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`);
+          NODE
+
+      - name: Publish scoped package to GitHub Packages
+        working-directory: sumit-react/.publish-ghpkg
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm config set @digitizers:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken "${NODE_AUTH_TOKEN}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --registry=https://npm.pkg.github.com --access public --ignore-scripts --dry-run
+          else
+            npm publish --registry=https://npm.pkg.github.com --access public --ignore-scripts
+          fi
