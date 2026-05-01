@@ -1,16 +1,23 @@
 import {
+  buildOneOffChargePayload,
   buildRecurringChargePayload,
-  normalizeRecurringChargeResponse,
+  normalizeChargeResponse,
   redactSumitPayload,
 } from "sumit-api";
 import type {
+  BuildOneOffChargePayloadParams,
   BuildRecurringChargePayloadParams,
   NormalizedSumitEvent,
   SumitCurrency,
 } from "sumit-api";
 
 const DEFAULT_BASE_URL = "https://api.sumit.co.il";
-const DEFAULT_PATH = "/billing/recurring/charge/";
+const DEFAULT_PATHS = {
+  recurring: "/billing/recurring/charge/",
+  oneOff: "/billing/payments/charge/",
+} as const;
+
+export type SumitChargeMode = "recurring" | "oneOff";
 
 export interface SumitChargeRequestBody {
   singleUseToken: string;
@@ -24,8 +31,10 @@ export interface SumitChargeRequestBody {
     description: string;
     unitPrice: number;
     currency: SumitCurrency;
-    durationMonths: number;
+    /** Required for `mode: "recurring"`. Ignored in one-off mode. */
+    durationMonths?: number;
     quantity?: number;
+    /** Recurring-only. Ignored in one-off mode. */
     recurrence?: number;
   };
   vatIncluded?: boolean;
@@ -36,6 +45,8 @@ export interface SumitChargeRequestBody {
 export interface SumitChargeRouteConfig {
   companyId: number;
   apiKey: string;
+  /** Defaults to `"recurring"` for back-compat. Set to `"oneOff"` for `/billing/payments/charge/`. */
+  mode?: SumitChargeMode;
   baseUrl?: string;
   path?: string;
   fetch?: typeof fetch;
@@ -47,8 +58,9 @@ export interface SumitChargeRouteConfig {
 export type SumitChargeRouteHandler = (request: Request) => Promise<Response>;
 
 export function createSumitChargeRoute(config: SumitChargeRouteConfig): SumitChargeRouteHandler {
+  const mode: SumitChargeMode = config.mode ?? "recurring";
   const baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
-  const path = config.path ?? DEFAULT_PATH;
+  const path = config.path ?? DEFAULT_PATHS[mode];
   const upstreamFetch = config.fetch ?? fetch;
 
   return async function POST(request: Request): Promise<Response> {
@@ -65,22 +77,12 @@ export function createSumitChargeRoute(config: SumitChargeRouteConfig): SumitCha
       return jsonResponse({ ok: false, error: "Missing required fields: singleUseToken, customer, item" }, 400);
     }
 
-    const validationError = validateChargeRequestBody(parsed);
+    const validationError = validateChargeRequestBody(parsed, mode);
     if (validationError) {
       return jsonResponse({ ok: false, error: validationError }, 400);
     }
 
-    const payloadParams: BuildRecurringChargePayloadParams = {
-      companyId: config.companyId,
-      apiKey: config.apiKey,
-      customer: parsed.customer,
-      singleUseToken: parsed.singleUseToken,
-      item: parsed.item,
-      vatIncluded: parsed.vatIncluded,
-      onlyDocument: parsed.onlyDocument,
-      authoriseOnly: parsed.authoriseOnly,
-    };
-    const payload = buildRecurringChargePayload(payloadParams);
+    const payload = mode === "oneOff" ? buildOneOffChargePayload(toOneOffParams(parsed, config)) : buildRecurringChargePayload(toRecurringParams(parsed, config));
 
     let upstreamJson: unknown;
     try {
@@ -98,7 +100,7 @@ export function createSumitChargeRoute(config: SumitChargeRouteConfig): SumitCha
       return jsonResponse({ ok: false, error: "Upstream request to SUMIT failed" }, 502);
     }
 
-    const event = normalizeRecurringChargeResponse(upstreamJson);
+    const event = normalizeChargeResponse(upstreamJson);
     if (event.ok === null || event.eventType === "sumit.trigger.unmapped") {
       return jsonResponse({ ok: false, error: "SUMIT returned an unmapped charge response", event: redactSumitPayload(event) }, 502);
     }
@@ -109,7 +111,34 @@ export function createSumitChargeRoute(config: SumitChargeRouteConfig): SumitCha
   };
 }
 
-function validateChargeRequestBody(body: SumitChargeRequestBody): string | null {
+function toRecurringParams(body: SumitChargeRequestBody, config: SumitChargeRouteConfig): BuildRecurringChargePayloadParams {
+  return {
+    companyId: config.companyId,
+    apiKey: config.apiKey,
+    customer: body.customer,
+    singleUseToken: body.singleUseToken,
+    item: { ...body.item, durationMonths: body.item.durationMonths! },
+    vatIncluded: body.vatIncluded,
+    onlyDocument: body.onlyDocument,
+    authoriseOnly: body.authoriseOnly,
+  };
+}
+
+function toOneOffParams(body: SumitChargeRequestBody, config: SumitChargeRouteConfig): BuildOneOffChargePayloadParams {
+  const { durationMonths: _durationMonths, recurrence: _recurrence, ...item } = body.item;
+  return {
+    companyId: config.companyId,
+    apiKey: config.apiKey,
+    customer: body.customer,
+    singleUseToken: body.singleUseToken,
+    item,
+    vatIncluded: body.vatIncluded,
+    onlyDocument: body.onlyDocument,
+    authoriseOnly: body.authoriseOnly,
+  };
+}
+
+function validateChargeRequestBody(body: SumitChargeRequestBody, mode: SumitChargeMode): string | null {
   if (!isNonEmptyString(body.singleUseToken)) return "singleUseToken must be a non-empty string";
   if (!isNonEmptyString(body.customer.externalIdentifier)) return "customer.externalIdentifier must be a non-empty string";
   if (!isNonEmptyString(body.customer.name)) return "customer.name must be a non-empty string";
@@ -117,7 +146,7 @@ function validateChargeRequestBody(body: SumitChargeRequestBody): string | null 
   if (!isNonEmptyString(body.item.name)) return "item.name must be a non-empty string";
   if (!isNonEmptyString(body.item.description)) return "item.description must be a non-empty string";
   if (!isPositiveFiniteNumber(body.item.unitPrice)) return "item.unitPrice must be a positive number";
-  if (!isPositiveFiniteNumber(body.item.durationMonths)) return "item.durationMonths must be a positive number";
+  if (mode === "recurring" && !isPositiveFiniteNumber(body.item.durationMonths)) return "item.durationMonths must be a positive number";
   if (!["ILS", "USD", "EUR", 0, 1, 2].includes(body.item.currency)) return "item.currency must be one of ILS, USD, EUR, 0, 1, 2";
   if (body.item.quantity !== undefined && !isPositiveFiniteNumber(body.item.quantity)) return "item.quantity must be a positive number";
   if (body.item.recurrence !== undefined && !isNonNegativeFiniteNumber(body.item.recurrence)) return "item.recurrence must be a non-negative number";

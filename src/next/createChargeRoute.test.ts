@@ -137,4 +137,56 @@ describe("createSumitChargeRoute", () => {
     expect(response.status).toBe(502);
     expect(onError).toHaveBeenCalledOnce();
   });
+
+  describe("mode: oneOff", () => {
+    const oneOffBody = {
+      singleUseToken: "tok_one_off",
+      customer: validBody.customer,
+      item: { name: "Setup fee", description: "One-time", unitPrice: 49, currency: "USD" as const },
+    };
+
+    it("targets /billing/payments/charge/ and sends a payload without Duration_Months", async () => {
+      const fetchMock = vi.fn(async () =>
+        new Response(JSON.stringify({ Payment: { ID: 111, ValidPayment: true, Status: "000" }, CustomerID: "1", DocumentID: "9" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+      const handler = createSumitChargeRoute({ companyId: 7, apiKey: "k", mode: "oneOff", fetch: fetchMock as unknown as typeof fetch });
+      const response = await handler(jsonRequest(oneOffBody));
+
+      expect(response.status).toBe(200);
+      const json = (await response.json()) as Record<string, unknown>;
+      expect(json.eventType).toBe("payment.succeeded");
+      expect(json.ok).toBe(true);
+      expect(json.recurringItemId).toBeUndefined();
+
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://api.sumit.co.il/billing/payments/charge/");
+      const sentBody = JSON.parse(init.body as string) as { Items: Array<Record<string, unknown>> };
+      expect(sentBody.Items[0]).not.toHaveProperty("Duration_Months");
+      expect(sentBody.Items[0]).not.toHaveProperty("Recurrence");
+      expect((sentBody.Items[0].Item as Record<string, unknown>)).not.toHaveProperty("Duration_Months");
+    });
+
+    it("does not require durationMonths in one-off mode", async () => {
+      const fetchMock = vi.fn(async () =>
+        new Response(JSON.stringify({ Payment: { ValidPayment: true, Status: "000" }, CustomerID: "1" }), { status: 200 }),
+      );
+      const handler = createSumitChargeRoute({ companyId: 7, apiKey: "k", mode: "oneOff", fetch: fetchMock as unknown as typeof fetch });
+      const response = await handler(jsonRequest(oneOffBody));
+      expect(response.status).toBe(200);
+    });
+
+    it("rejects recurring requests missing durationMonths with a 400", async () => {
+      const fetchMock = vi.fn();
+      const handler = createSumitChargeRoute({ companyId: 7, apiKey: "k", fetch: fetchMock as unknown as typeof fetch });
+      const { durationMonths: _drop, ...itemWithoutDuration } = validBody.item;
+      const response = await handler(jsonRequest({ ...validBody, item: itemWithoutDuration }));
+      expect(response.status).toBe(400);
+      expect(fetchMock).not.toHaveBeenCalled();
+      const json = (await response.json()) as Record<string, unknown>;
+      expect(json.error).toContain("item.durationMonths");
+    });
+  });
 });

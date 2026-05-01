@@ -17,7 +17,7 @@ Two entry points, kept strictly separate:
 | Path | Surface | Notes |
 | --- | --- | --- |
 | `./client` | `SumitCheckout`, `useSumitCheckout`, `loadSumitPayments`, `createSingleUseToken` | Browser-only. Loads `payments.js` from SUMIT. **Card data never touches our server** — SUMIT's script reads form fields directly. |
-| `./next` | `createSumitChargeRoute`, `createSumitWebhookRoute`, `verifySumitSharedSecret` | Server-only. Uses Web Standard `Request` / `Response` so it works in Edge and Node runtimes. |
+| `./next` | `createSumitChargeRoute`, `createSumitWebhookRoute`, `verifySumitSharedSecret` | Server-only. Uses Web Standard `Request` / `Response` so it works in Edge and Node runtimes. `createSumitChargeRoute` accepts `mode: "recurring" \| "oneOff"` (default recurring) to switch between `/billing/recurring/charge/` and `/billing/payments/charge/`. |
 
 **Never import from `./next` in client code.** The server bundle holds the SUMIT `apiKey`; leaking it to the browser is a P0.
 

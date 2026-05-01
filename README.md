@@ -107,22 +107,33 @@ import { createSumitChargeRoute } from "sumit-react/next";
 export const POST = createSumitChargeRoute({
   companyId: Number(process.env.SUMIT_COMPANY_ID),
   apiKey: process.env.SUMIT_API_KEY!,
+  // mode: "recurring" (default) | "oneOff"
   onResult: async (event) => {
     if (event.ok && event.eventType === "recurring.charged") {
       // persist event.customerId, event.recurringItemId, event.paymentId
     }
+    if (event.ok && event.eventType === "payment.succeeded") {
+      // one-off charge succeeded — persist event.paymentId, event.documentId
+    }
   },
 });
 ```
+
+| `mode`                    | Endpoint                          | Required item fields                                              |
+| ------------------------- | --------------------------------- | ----------------------------------------------------------------- |
+| `"recurring"` *(default)* | `POST /billing/recurring/charge/` | `name`, `description`, `unitPrice`, `currency`, `durationMonths`  |
+| `"oneOff"`                | `POST /billing/payments/charge/`  | `name`, `description`, `unitPrice`, `currency`                    |
+
+The same `<SumitCheckout />` and `SingleUseToken` work for both — only the route's `mode` changes.
 
 What the handler does:
 
 | Step      | Behaviour                                                                                                |
 | --------- | -------------------------------------------------------------------------------------------------------- |
 | Validate  | Checks the JSON body shape (`singleUseToken`, `customer`, `item`).                                       |
-| Build     | Calls `buildRecurringChargePayload` from `sumit-api`.                                        |
-| Send      | `POST`s to `https://api.sumit.co.il/billing/recurring/charge/`.                                          |
-| Normalize | Calls `normalizeRecurringChargeResponse`.                                                                |
+| Build     | Calls `buildRecurringChargePayload` or `buildOneOffChargePayload` (per `mode`) from `sumit-api`.         |
+| Send      | `POST`s to `/billing/recurring/charge/` or `/billing/payments/charge/` (per `mode`).                     |
+| Normalize | Calls `normalizeChargeResponse`.                                                                         |
 | Respond   | `200` success, `402` declined, `400` bad input, `502` upstream failure — sensitive fields **redacted**.  |
 
 ---
