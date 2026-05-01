@@ -1,15 +1,33 @@
 # @digitizers/sumit-react
 
-React components and Next.js route helpers for [SUMIT / OfficeGuy / Upay](https://sumit.co.il/) payments.
+> React components and Next.js route helpers for [SUMIT / OfficeGuy / Upay](https://sumit.co.il) payments. The companion to [`@digitizers/sumit-api`](https://github.com/Digitizers/sumit-api).
 
-The companion to [`@digitizers/sumit-api`](https://github.com/Digitizers/sumit-api). This package adds the parts you need to ship a checkout in a React or Next.js app:
+Ship a working SUMIT checkout flow in a React or Next.js app with two files: a Client Component and a route handler.
 
-- `<SumitCheckout />` — a client component that loads SUMIT's `payments.js`, renders the card-input form with the correct field names, and produces a one-time tokenization (`SingleUseToken`) on submit.
-- `useSumitCheckout()` — a small hook for tracking checkout state (`idle | submitting | succeeded | failed`).
-- `createSumitChargeRoute()` — a Next.js App Router (or any Web-Standard) `POST` handler factory that calls the SUMIT recurring-charge endpoint with your server credentials and returns a normalized event.
-- `createSumitWebhookRoute()` — a `POST` handler factory for SUMIT Triggers (JSON, `application/x-www-form-urlencoded`, and `json=...` envelope shapes), with optional shared-secret verification.
+| Export | What it does |
+| --- | --- |
+| `<SumitCheckout />` | Client component that loads SUMIT's `payments.js`, renders the card-input form with the correct field names, and produces a one-time `SingleUseToken` on submit. |
+| `useSumitCheckout()` | Hook for tracking checkout state (`idle \| submitting \| succeeded \| failed`). |
+| `createSumitChargeRoute()` | Next.js App Router (or any Web-Standard) `POST` handler factory that calls the SUMIT recurring-charge endpoint with your server credentials and returns a normalized event. |
+| `createSumitWebhookRoute()` | `POST` handler factory for SUMIT Triggers (JSON, `application/x-www-form-urlencoded`, and `json=…` envelope shapes), with optional shared-secret verification. |
 
-> Card data never touches your server. The component renders a form whose card inputs are read by SUMIT's `payments.js` directly; only the resulting `SingleUseToken` is forwarded to your API route.
+> **Card data never touches your server.** The component renders a form whose card inputs are read by SUMIT's `payments.js` directly; only the resulting `SingleUseToken` is forwarded to your API route.
+
+---
+
+## Contents
+
+1. [Install](#install)
+2. [Render the checkout (Client Component)](#1-render-the-checkout-client-component)
+3. [Charge route (server)](#2-charge-route-server)
+4. [Webhook route (server)](#3-webhook-route-server)
+5. [SUMIT environment](#sumit-environment)
+6. [API surface](#api-surface)
+7. [Local development](#local-development)
+8. [Acknowledgements](#acknowledgements)
+9. [License](#license)
+
+---
 
 ## Install
 
@@ -17,7 +35,9 @@ The companion to [`@digitizers/sumit-api`](https://github.com/Digitizers/sumit-a
 pnpm add @digitizers/sumit-react @digitizers/sumit-api
 ```
 
-`react` and (optionally) `next` are peer dependencies of your app. SUMIT's `payments.js` is loaded from `https://app.sumit.co.il/scripts/payments.js` at runtime.
+`react` (and optionally `next`) are peer dependencies of your app. SUMIT's `payments.js` is loaded from `https://app.sumit.co.il/scripts/payments.js` at runtime.
+
+---
 
 ## 1. Render the checkout (Client Component)
 
@@ -67,6 +87,8 @@ export function Checkout() {
 
 The component renders the inputs SUMIT expects (`og-ccnum`, `og-expmonth`, `og-expyear`, `og-cvv`, optional `og-citizenid`, hidden `og-token`). You control the surrounding markup and styling via `classNames`, `style`, and `children` (typically a submit button).
 
+---
+
 ## 2. Charge route (server)
 
 ```ts
@@ -84,13 +106,17 @@ export const POST = createSumitChargeRoute({
 });
 ```
 
-The handler:
+What the handler does:
 
-- Validates the JSON body shape (`singleUseToken`, `customer`, `item`).
-- Builds the SUMIT payload via `buildRecurringChargePayload` from `@digitizers/sumit-api`.
-- POSTs to `https://api.sumit.co.il/billing/recurring/charge/`.
-- Normalizes the response via `normalizeRecurringChargeResponse`.
-- Returns `200` for success, `402` for declined payments, `400` for bad input, `502` for upstream failures — and **redacts** sensitive fields before responding.
+| Step      | Behaviour                                                                                                |
+| --------- | -------------------------------------------------------------------------------------------------------- |
+| Validate  | Checks the JSON body shape (`singleUseToken`, `customer`, `item`).                                       |
+| Build     | Calls `buildRecurringChargePayload` from `@digitizers/sumit-api`.                                        |
+| Send      | `POST`s to `https://api.sumit.co.il/billing/recurring/charge/`.                                          |
+| Normalize | Calls `normalizeRecurringChargeResponse`.                                                                |
+| Respond   | `200` success, `402` declined, `400` bad input, `502` upstream failure — sensitive fields **redacted**.  |
+
+---
 
 ## 3. Webhook route (server)
 
@@ -111,14 +137,18 @@ export const POST = createSumitWebhookRoute({
 
 Accepts JSON, `application/x-www-form-urlencoded`, and SUMIT's `json=<serialized>` envelope. Returns `200` on success, `401` when verification fails, `500` (without leaking the original error) when your handler throws.
 
+---
+
 ## SUMIT environment
 
-| Environment | URL loaded by `<SumitCheckout />` |
-| --- | --- |
-| `production` (default) | `https://app.sumit.co.il/scripts/payments.js` |
-| `dev` | `http://dev.sumit.co.il/scripts/payments.js` |
+| Environment              | URL loaded by `<SumitCheckout />`                  |
+| ------------------------ | -------------------------------------------------- |
+| `production` *(default)* | `https://app.sumit.co.il/scripts/payments.js`      |
+| `dev`                    | `http://dev.sumit.co.il/scripts/payments.js`       |
 
-The `companyId` and `apiPublicKey` are safe to expose to the browser. The `apiKey` (without "Public") is **server-only** and must never be sent to the client.
+`companyId` and `apiPublicKey` are safe to expose to the browser. The `apiKey` (without "Public") is **server-only** and must never reach the client.
+
+---
 
 ## API surface
 
@@ -139,6 +169,8 @@ createSumitWebhookRoute(config): (request: Request) => Promise<Response>
 verifySumitSharedSecret(secret, options?): SumitWebhookVerifier
 ```
 
+---
+
 ## Local development
 
 This package has `@digitizers/sumit-api` as a peer dependency. While `sumit-api` is being published to npm, the dev dependency in this repo points at `file:../sumit-api`, so cloning both repos as siblings is the supported local setup:
@@ -153,17 +185,21 @@ Then:
 
 ```bash
 pnpm install
-pnpm typecheck
-pnpm test
-pnpm build
+pnpm typecheck    # tsc --noEmit
+pnpm test         # vitest run
+pnpm build        # tsc → dist/
 ```
 
 Once `@digitizers/sumit-api` is published, the dev dependency will switch to a regular semver range and CI will install it from the registry.
+
+---
 
 ## Acknowledgements
 
 The browser-side API surface (`OfficeGuy.Payments.CreateToken` and the `og-*` form fields) was reverse-engineered from the official [SUMIT WooCommerce plugin](https://wordpress.org/plugins/woo-payment-gateway-officeguy/) (GPL-2.0+). No code is copied from that plugin; this implementation is independent and MIT-licensed.
 
+---
+
 ## License
 
-MIT
+[MIT](LICENSE)
