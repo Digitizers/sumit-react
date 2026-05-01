@@ -1,6 +1,6 @@
 {
   "name": "sumit-react",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "React components and Next.js route helpers for SUMIT (formerly OfficeGuy) payments.",
   "license": "MIT",
   "type": "module",
@@ -48,7 +48,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "sumit-api": ">=0.1.0",
+    "sumit-api": ">=0.2.0",
     "react": ">=18.0.0"
   },
   "devDependencies": {
