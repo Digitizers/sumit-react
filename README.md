@@ -1,12 +1,12 @@
-# @digitizers/sumit-react
+# @godigitizer/sumit-react
 
-[![npm](https://img.shields.io/npm/v/@digitizers/sumit-react.svg)](https://www.npmjs.com/package/@digitizers/sumit-react)
-[![types](https://img.shields.io/npm/types/@digitizers/sumit-react.svg)](https://www.npmjs.com/package/@digitizers/sumit-react)
-[![license](https://img.shields.io/npm/l/@digitizers/sumit-react.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/@godigitizer/sumit-react.svg)](https://www.npmjs.com/package/@godigitizer/sumit-react)
+[![types](https://img.shields.io/npm/types/@godigitizer/sumit-react.svg)](https://www.npmjs.com/package/@godigitizer/sumit-react)
+[![license](https://img.shields.io/npm/l/@godigitizer/sumit-react.svg)](LICENSE)
 [![react](https://img.shields.io/badge/react-%E2%89%A518-61DAFB?logo=react&logoColor=white)](package.json)
 [![next](https://img.shields.io/badge/next.js-app%20router-000000?logo=next.js&logoColor=white)](https://nextjs.org)
 
-> React components and Next.js route helpers for [SUMIT / OfficeGuy / Upay](https://sumit.co.il) payments. The companion to [`@digitizers/sumit-api`](https://github.com/Digitizers/sumit-api).
+> React components and Next.js route helpers for [SUMIT / OfficeGuy / Upay](https://sumit.co.il) payments. The companion to [`@godigitizer/sumit-api`](https://github.com/Digitizers/sumit-api).
 
 Ship a working SUMIT checkout flow in a React or Next.js app with two files: a Client Component and a route handler.
 
@@ -38,7 +38,7 @@ Ship a working SUMIT checkout flow in a React or Next.js app with two files: a C
 ## Install
 
 ```bash
-pnpm add @digitizers/sumit-react @digitizers/sumit-api
+pnpm add @godigitizer/sumit-react @godigitizer/sumit-api
 ```
 
 `react` (and optionally `next`) are peer dependencies of your app. SUMIT's `payments.js` is loaded from `https://app.sumit.co.il/scripts/payments.js` at runtime.
@@ -50,7 +50,7 @@ pnpm add @digitizers/sumit-react @digitizers/sumit-api
 ```tsx
 "use client";
 
-import { SumitCheckout, useSumitCheckout } from "@digitizers/sumit-react/client";
+import { SumitCheckout, useSumitCheckout } from "@godigitizer/sumit-react/client";
 
 export function Checkout() {
   const checkout = useSumitCheckout();
@@ -100,7 +100,7 @@ The component renders the inputs SUMIT expects (`og-ccnum`, `og-expmonth`, `og-e
 
 ```ts
 // app/api/sumit/charge/route.ts
-import { createSumitChargeRoute } from "@digitizers/sumit-react/next";
+import { createSumitChargeRoute } from "@godigitizer/sumit-react/next";
 
 export const POST = createSumitChargeRoute({
   companyId: Number(process.env.SUMIT_COMPANY_ID),
@@ -118,7 +118,7 @@ What the handler does:
 | Step      | Behaviour                                                                                                |
 | --------- | -------------------------------------------------------------------------------------------------------- |
 | Validate  | Checks the JSON body shape (`singleUseToken`, `customer`, `item`).                                       |
-| Build     | Calls `buildRecurringChargePayload` from `@digitizers/sumit-api`.                                        |
+| Build     | Calls `buildRecurringChargePayload` from `@godigitizer/sumit-api`.                                        |
 | Send      | `POST`s to `https://api.sumit.co.il/billing/recurring/charge/`.                                          |
 | Normalize | Calls `normalizeRecurringChargeResponse`.                                                                |
 | Respond   | `200` success, `402` declined, `400` bad input, `502` upstream failure — sensitive fields **redacted**.  |
@@ -129,7 +129,7 @@ What the handler does:
 
 ```ts
 // app/api/sumit/webhook/route.ts
-import { createSumitWebhookRoute, verifySumitSharedSecret } from "@digitizers/sumit-react/next";
+import { createSumitWebhookRoute, verifySumitSharedSecret } from "@godigitizer/sumit-react/next";
 
 export const POST = createSumitWebhookRoute({
   verify: verifySumitSharedSecret(process.env.SUMIT_WEBHOOK_SECRET!),
@@ -173,14 +173,14 @@ Header verification is preferred because query strings are commonly stored in ac
 | **Server credential leakage** | The full `apiKey` lives only in `createSumitChargeRoute`; `./client` and `./next` are separate exports so client bundles cannot transitively pull the server secret. |
 | **Webhook spoofing** | `verifySumitSharedSecret` checks the `x-sumit-secret` header by default and hashes both the candidate and the secret to a fixed 32-byte digest before comparing — the comparison is constant-time **and** length-independent, so response timing leaks neither secret content nor secret length. Query-string secrets are opt-in only because URLs commonly land in logs. |
 | **Double-submit / token reuse** | `<SumitCheckout />` uses a synchronous ref guard so two rapid submits cannot both fire `CreateToken` (single-use tokens are exactly that — single-use). |
-| **Logging sensitive data** | Every event the route helpers return passes through `redactSumitPayload` from `@digitizers/sumit-api`. |
+| **Logging sensitive data** | Every event the route helpers return passes through `redactSumitPayload` from `@godigitizer/sumit-api`. |
 
 ---
 
 ## API surface
 
 ```ts
-// from @digitizers/sumit-react/client
+// from @godigitizer/sumit-react/client
 SumitCheckout(props): JSX.Element
   props.companyId, apiPublicKey, environment?, language?
   props.requireCvv?, requireCitizenId?
@@ -190,7 +190,7 @@ useSumitCheckout(): { ref, status, error, token, submit, reset, handleToken, han
 loadSumitPayments(env?): Promise<SumitPaymentsSdk>
 createSingleUseToken(settings): Promise<string>
 
-// from @digitizers/sumit-react/next
+// from @godigitizer/sumit-react/next
 createSumitChargeRoute(config): (request: Request) => Promise<Response>
 createSumitWebhookRoute(config): (request: Request) => Promise<Response>
 verifySumitSharedSecret(secret, options?): SumitWebhookVerifier
@@ -200,7 +200,7 @@ verifySumitSharedSecret(secret, options?): SumitWebhookVerifier
 
 ## Local development
 
-This package has `@digitizers/sumit-api` as a peer dependency. While `sumit-api` is being published to npm, the dev dependency in this repo points at `file:../sumit-api`, so cloning both repos as siblings is the supported local setup:
+This package has `@godigitizer/sumit-api` as a peer dependency. While `sumit-api` is being published to npm, the dev dependency in this repo points at `file:../sumit-api`, so cloning both repos as siblings is the supported local setup:
 
 ```text
 ~/code/
@@ -217,7 +217,7 @@ pnpm test         # vitest run
 pnpm build        # tsc → dist/
 ```
 
-Once `@digitizers/sumit-api` is published, the dev dependency will switch to a regular semver range and CI will install it from the registry.
+Once `@godigitizer/sumit-api` is published, the dev dependency will switch to a regular semver range and CI will install it from the registry.
 
 ---
 

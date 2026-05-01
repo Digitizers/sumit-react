@@ -1,5 +1,5 @@
-import { normalizeSumitIncomingPayload, redactSumitPayload } from "@digitizers/sumit-api";
-import type { NormalizedSumitEvent } from "@digitizers/sumit-api";
+import { normalizeSumitIncomingPayload, redactSumitPayload } from "@godigitizer/sumit-api";
+import type { NormalizedSumitEvent } from "@godigitizer/sumit-api";
 
 export type SumitWebhookVerifier = (request: Request) => boolean | Promise<boolean>;
 
