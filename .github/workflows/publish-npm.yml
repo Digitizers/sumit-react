@@ -1,0 +1,91 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run npm publish as a dry run"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sumit-react
+        uses: actions/checkout@v4
+        with:
+          path: sumit-react
+
+      - name: Checkout sumit-api peer package
+        uses: actions/checkout@v4
+        with:
+          repository: Digitizers/sumit-api
+          path: sumit-api
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+          cache-dependency-path: |
+            sumit-react/pnpm-lock.yaml
+            sumit-api/pnpm-lock.yaml
+
+      - name: Build sumit-api peer package
+        working-directory: sumit-api
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Install sumit-react
+        working-directory: sumit-react
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: sumit-react
+        run: pnpm typecheck
+
+      - name: Test
+        working-directory: sumit-react
+        run: pnpm test
+
+      - name: Build
+        working-directory: sumit-react
+        run: pnpm build
+
+      - name: Pack check
+        working-directory: sumit-react
+        run: npm pack --dry-run
+
+      - name: Verify npm token
+        working-directory: sumit-react
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish public package
+        working-directory: sumit-react
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --dry-run
+          else
+            npm publish --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
