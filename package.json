@@ -1,0 +1,68 @@
+{
+  "name": "@digitizers/sumit-react",
+  "version": "0.1.0",
+  "description": "React components and Next.js route helpers for SUMIT/OfficeGuy/Upay payments.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    },
+    "./next": {
+      "types": "./dist/next/index.d.ts",
+      "import": "./dist/next/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Digitizers/sumit-react.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Digitizers/sumit-react/issues"
+  },
+  "homepage": "https://github.com/Digitizers/sumit-react#readme",
+  "keywords": [
+    "sumit",
+    "officeguy",
+    "upay",
+    "payments",
+    "react",
+    "nextjs",
+    "next",
+    "checkout",
+    "billing",
+    "recurring",
+    "typescript"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@digitizers/sumit-api": ">=0.1.0",
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@digitizers/sumit-api": "file:../sumit-api",
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "^20.19.35",
+    "@types/react": "^19.0.0",
+    "happy-dom": "^15.11.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5",
+    "vitest": "^4.0.18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

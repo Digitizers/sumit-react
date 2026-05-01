@@ -1,0 +1,113 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { createSumitWebhookRoute, verifySumitSharedSecret } from "./createWebhookRoute.js";
+
+describe("createSumitWebhookRoute", () => {
+  it("normalizes JSON payloads and invokes onEvent", async () => {
+    const onEvent = vi.fn();
+    const handler = createSumitWebhookRoute({ onEvent });
+    const response = await handler(
+      new Request("https://example.com/api/sumit/webhook", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          Folder: "Charges",
+          EntityID: "777",
+          Type: "PaymentSucceeded",
+          Properties: { Property_3: [{ ID: "1" }] },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as Record<string, unknown>;
+    expect(json.ok).toBe(true);
+    expect(onEvent).toHaveBeenCalledOnce();
+    const [event] = onEvent.mock.calls[0] as [{ paymentId?: string; customerId?: string; eventType: string }];
+    expect(event.eventType).toBe("sumit.trigger.unmapped");
+    expect(event.paymentId).toBe("777");
+    expect(event.customerId).toBe("1");
+  });
+
+  it("normalizes form-encoded payloads", async () => {
+    const onEvent = vi.fn();
+    const handler = createSumitWebhookRoute({ onEvent });
+    const body = new URLSearchParams({
+      "Payment.Status": "000",
+      "Payment.ValidPayment": "true",
+      "Payment.ID": "p1",
+      "RecurringCustomerItemIDs[0]": "444",
+    }).toString();
+
+    const response = await handler(
+      new Request("https://example.com/api/sumit/webhook", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const [event] = onEvent.mock.calls[0] as [{ eventType: string; paymentId?: string }];
+    expect(event.eventType).toBe("recurring.charged");
+    expect(event.paymentId).toBe("p1");
+  });
+
+  it("returns 401 when verify rejects", async () => {
+    const onEvent = vi.fn();
+    const verify = vi.fn().mockResolvedValue(false);
+    const handler = createSumitWebhookRoute({ onEvent, verify });
+    const response = await handler(
+      new Request("https://example.com/api/sumit/webhook", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+    );
+    expect(response.status).toBe(401);
+    expect(onEvent).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 when handler throws but does not leak the error", async () => {
+    const handler = createSumitWebhookRoute({
+      onEvent: () => {
+        throw new Error("db is down");
+      },
+    });
+    const response = await handler(
+      new Request("https://example.com/api/sumit/webhook", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+    );
+    expect(response.status).toBe(500);
+    const json = (await response.json()) as Record<string, unknown>;
+    expect(json.error).toBe("Handler failed");
+    expect(JSON.stringify(json)).not.toContain("db is down");
+  });
+});
+
+describe("verifySumitSharedSecret", () => {
+  it("accepts the secret from the configured header", async () => {
+    const verifier = verifySumitSharedSecret("s3cret");
+    const ok = await verifier(
+      new Request("https://example.com/", { method: "POST", headers: { "x-sumit-secret": "s3cret" } }),
+    );
+    expect(ok).toBe(true);
+  });
+
+  it("accepts the secret from a query param", async () => {
+    const verifier = verifySumitSharedSecret("s3cret", { queryParam: "k" });
+    const ok = await verifier(new Request("https://example.com/?k=s3cret", { method: "POST" }));
+    expect(ok).toBe(true);
+  });
+
+  it("rejects mismatching secrets", async () => {
+    const verifier = verifySumitSharedSecret("s3cret");
+    const ok = await verifier(
+      new Request("https://example.com/", { method: "POST", headers: { "x-sumit-secret": "wrong" } }),
+    );
+    expect(ok).toBe(false);
+  });
+});
