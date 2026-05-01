@@ -2,12 +2,12 @@ import {
   buildRecurringChargePayload,
   normalizeRecurringChargeResponse,
   redactSumitPayload,
-} from "@godigitizer/sumit-api";
+} from "sumit-api";
 import type {
   BuildRecurringChargePayloadParams,
   NormalizedSumitEvent,
   SumitCurrency,
-} from "@godigitizer/sumit-api";
+} from "sumit-api";
 
 const DEFAULT_BASE_URL = "https://api.sumit.co.il";
 const DEFAULT_PATH = "/billing/recurring/charge/";

@@ -4,9 +4,9 @@ Guidance for AI assistants working in this repository.
 
 ## Project
 
-`@godigitizer/sumit-react` — React component (`<SumitCheckout />`), checkout state hook (`useSumitCheckout`), and Next.js route helpers (`createSumitChargeRoute`, `createSumitWebhookRoute`) for SUMIT / OfficeGuy / Upay payments.
+`sumit-react` — React component (`<SumitCheckout />`), checkout state hook (`useSumitCheckout`), and Next.js route helpers (`createSumitChargeRoute`, `createSumitWebhookRoute`) for SUMIT / OfficeGuy / Upay payments.
 
-Companion package: [`@godigitizer/sumit-api`](https://github.com/Digitizers/sumit-api) (peer dependency).
+Companion package: [`sumit-api`](https://github.com/Digitizers/sumit-api) (peer dependency).
 
 ## Architecture
 
@@ -34,7 +34,7 @@ This package handles payments. Three rules:
 2. **Webhook verification is constant-time AND length-independent.** `verifySumitSharedSecret` hashes both the candidate and the secret to a fixed-length digest before comparing — a length-dependent path leaks the secret's byte-length via response timing.
 3. **Tokenization is single-flight.** `<SumitCheckout />` uses a synchronous `useRef` guard so two rapid submits cannot both fire `CreateToken` (a stale-closure on `useState` would let the second slip through).
 
-All payloads forwarded to clients pass through `redactSumitPayload` from `@godigitizer/sumit-api`.
+All payloads forwarded to clients pass through `redactSumitPayload` from `sumit-api`.
 
 ## Workflow
 
