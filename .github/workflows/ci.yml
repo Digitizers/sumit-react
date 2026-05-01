@@ -10,15 +10,49 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout sumit-react
+        uses: actions/checkout@v4
+        with:
+          path: sumit-react
+
+      # `@digitizers/sumit-api` is consumed via `file:../sumit-api` until it
+      # ships to npm, so CI must check it out as a sibling and build its dist/.
+      - name: Checkout sumit-api (peer dependency)
+        uses: actions/checkout@v4
+        with:
+          repository: Digitizers/sumit-api
+          path: sumit-api
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10.26.0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build
+          cache-dependency-path: |
+            sumit-react/pnpm-lock.yaml
+            sumit-api/pnpm-lock.yaml
+
+      - name: Build sumit-api
+        working-directory: sumit-api
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Install sumit-react
+        working-directory: sumit-react
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: sumit-react
+        run: pnpm typecheck
+
+      - name: Test
+        working-directory: sumit-react
+        run: pnpm test
+
+      - name: Build
+        working-directory: sumit-react
+        run: pnpm build
