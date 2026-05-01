@@ -1,6 +1,6 @@
 {
   "name": "@digitizers/sumit-react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React components and Next.js route helpers for SUMIT/OfficeGuy/Upay payments.",
   "license": "MIT",
   "type": "module",

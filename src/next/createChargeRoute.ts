@@ -65,6 +65,11 @@ export function createSumitChargeRoute(config: SumitChargeRouteConfig): SumitCha
       return jsonResponse({ ok: false, error: "Missing required fields: singleUseToken, customer, item" }, 400);
     }
 
+    const validationError = validateChargeRequestBody(parsed);
+    if (validationError) {
+      return jsonResponse({ ok: false, error: validationError }, 400);
+    }
+
     const payloadParams: BuildRecurringChargePayloadParams = {
       companyId: config.companyId,
       apiKey: config.apiKey,
@@ -85,17 +90,50 @@ export function createSumitChargeRoute(config: SumitChargeRouteConfig): SumitCha
         body: JSON.stringify(payload),
       });
       upstreamJson = await upstream.json().catch(() => null);
+      if (!upstream.ok) {
+        return jsonResponse({ ok: false, error: "SUMIT returned an unsuccessful response", upstreamStatus: upstream.status }, 502);
+      }
     } catch (error) {
       await safeCall(config.onError, error, request);
       return jsonResponse({ ok: false, error: "Upstream request to SUMIT failed" }, 502);
     }
 
     const event = normalizeRecurringChargeResponse(upstreamJson);
+    if (event.ok === null || event.eventType === "sumit.trigger.unmapped") {
+      return jsonResponse({ ok: false, error: "SUMIT returned an unmapped charge response", event: redactSumitPayload(event) }, 502);
+    }
     await safeCall(config.onResult, event, request);
 
     const status = event.ok === false ? 402 : 200;
     return jsonResponse(redactSumitPayload(event), status);
   };
+}
+
+function validateChargeRequestBody(body: SumitChargeRequestBody): string | null {
+  if (!isNonEmptyString(body.singleUseToken)) return "singleUseToken must be a non-empty string";
+  if (!isNonEmptyString(body.customer.externalIdentifier)) return "customer.externalIdentifier must be a non-empty string";
+  if (!isNonEmptyString(body.customer.name)) return "customer.name must be a non-empty string";
+  if (!isNonEmptyString(body.customer.emailAddress)) return "customer.emailAddress must be a non-empty string";
+  if (!isNonEmptyString(body.item.name)) return "item.name must be a non-empty string";
+  if (!isNonEmptyString(body.item.description)) return "item.description must be a non-empty string";
+  if (!isPositiveFiniteNumber(body.item.unitPrice)) return "item.unitPrice must be a positive number";
+  if (!isPositiveFiniteNumber(body.item.durationMonths)) return "item.durationMonths must be a positive number";
+  if (!["ILS", "USD", "EUR", 0, 1, 2].includes(body.item.currency)) return "item.currency must be one of ILS, USD, EUR, 0, 1, 2";
+  if (body.item.quantity !== undefined && !isPositiveFiniteNumber(body.item.quantity)) return "item.quantity must be a positive number";
+  if (body.item.recurrence !== undefined && !isNonNegativeFiniteNumber(body.item.recurrence)) return "item.recurrence must be a non-negative number";
+  return null;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isPositiveFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
 function jsonResponse(body: unknown, status: number): Response {

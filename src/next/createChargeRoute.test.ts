@@ -87,6 +87,46 @@ describe("createSumitChargeRoute", () => {
     expect(json.ok).toBe(false);
   });
 
+  it("returns 502 when SUMIT responds with a non-2xx status", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ UserErrorMessage: "temporary provider failure" }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const handler = createSumitChargeRoute({ companyId: 7, apiKey: "k", fetch: fetchMock as unknown as typeof fetch });
+    const response = await handler(jsonRequest(validBody));
+    expect(response.status).toBe(502);
+    const json = (await response.json()) as Record<string, unknown>;
+    expect(json.ok).toBe(false);
+    expect(json.error).toBe("SUMIT returned an unsuccessful response");
+  });
+
+  it("returns 502 when a direct charge response cannot be mapped to a billing result", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ unexpected: "shape" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const handler = createSumitChargeRoute({ companyId: 7, apiKey: "k", fetch: fetchMock as unknown as typeof fetch });
+    const response = await handler(jsonRequest(validBody));
+    expect(response.status).toBe(502);
+    const json = (await response.json()) as Record<string, unknown>;
+    expect(json.ok).toBe(false);
+    expect(json.error).toBe("SUMIT returned an unmapped charge response");
+  });
+
+  it("returns 400 when nested charge fields are invalid", async () => {
+    const fetchMock = vi.fn();
+    const handler = createSumitChargeRoute({ companyId: 7, apiKey: "k", fetch: fetchMock as unknown as typeof fetch });
+    const response = await handler(jsonRequest({ ...validBody, item: { ...validBody.item, unitPrice: "19" } }));
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+    const json = (await response.json()) as Record<string, unknown>;
+    expect(json.error).toContain("item.unitPrice");
+  });
+
   it("returns 502 when the upstream call throws", async () => {
     const fetchMock = vi.fn(async () => {
       throw new Error("network");

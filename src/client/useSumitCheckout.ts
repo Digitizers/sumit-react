@@ -12,8 +12,10 @@ export interface UseSumitCheckoutResult {
   submit: () => void;
   reset: () => void;
   handleToken: (token: string) => void;
+  handleSuccess: () => void;
   handleError: (error: Error) => void;
   handleStart: () => void;
+  clearToken: () => void;
 }
 
 export function useSumitCheckout(): UseSumitCheckoutResult {
@@ -39,6 +41,12 @@ export function useSumitCheckout(): UseSumitCheckoutResult {
     setError(null);
   }, []);
 
+  const handleSuccess = useCallback(() => {
+    setToken(null);
+    setStatus("succeeded");
+    setError(null);
+  }, []);
+
   const handleError = useCallback((value: Error) => {
     setError(value);
     setStatus("failed");
@@ -47,7 +55,12 @@ export function useSumitCheckout(): UseSumitCheckoutResult {
   const handleStart = useCallback(() => {
     setStatus("submitting");
     setError(null);
+    setToken(null);
   }, []);
 
-  return { ref, status, error, token, submit, reset, handleToken, handleError, handleStart };
+  const clearToken = useCallback(() => {
+    setToken(null);
+  }, []);
+
+  return { ref, status, error, token, submit, reset, handleToken, handleSuccess, handleError, handleStart, clearToken };
 }
