@@ -1,7 +1,7 @@
 {
   "name": "sumit-react",
   "version": "0.1.1",
-  "description": "React components and Next.js route helpers for SUMIT/OfficeGuy/Upay payments.",
+  "description": "React components and Next.js route helpers for SUMIT (formerly OfficeGuy) payments.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
