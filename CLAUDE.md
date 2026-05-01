@@ -4,7 +4,9 @@ Guidance for AI assistants working in this repository.
 
 ## Project
 
-`sumit-react` — React component (`<SumitCheckout />`), checkout state hook (`useSumitCheckout`), and Next.js route helpers (`createSumitChargeRoute`, `createSumitWebhookRoute`) for SUMIT / OfficeGuy / Upay payments.
+`sumit-react` — React component (`<SumitCheckout />`), checkout state hook (`useSumitCheckout`), and Next.js route helpers (`createSumitChargeRoute`, `createSumitWebhookRoute`) for SUMIT (formerly OfficeGuy) payments.
+
+SUMIT is the billing platform. It delegates card clearing to partner processors — Upay is one, others exist — so processor-level error codes (`Upay_*`) appear inside SUMIT response bodies and are scrubbed by `redactSumitPayload` from `sumit-api` before any event leaves a route handler.
 
 Companion package: [`sumit-api`](https://github.com/Digitizers/sumit-api) (peer dependency).
 
