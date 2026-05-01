@@ -53,10 +53,11 @@ export function createSumitWebhookRoute(config: SumitWebhookRouteConfig): SumitW
 
 export function verifySumitSharedSecret(secret: string, options: { header?: string; queryParam?: string } = {}): SumitWebhookVerifier {
   const headerName = (options.header ?? "x-sumit-secret").toLowerCase();
-  const queryParam = options.queryParam ?? "secret";
+  const queryParam = options.queryParam;
   return async (request) => {
     const headerValue = request.headers.get(headerName);
     if (headerValue && (await timingSafeEqual(headerValue, secret))) return true;
+    if (!queryParam) return false;
     const url = new URL(request.url);
     const queryValue = url.searchParams.get(queryParam);
     return Boolean(queryValue && (await timingSafeEqual(queryValue, secret)));
@@ -68,9 +69,12 @@ async function readPayload(request: Request): Promise<unknown> {
   if (contentType.includes("application/json")) {
     return (await request.json()) as unknown;
   }
-  if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+  if (contentType.includes("application/x-www-form-urlencoded")) {
     const body = await request.text();
     return new URLSearchParams(body);
+  }
+  if (contentType.includes("multipart/form-data")) {
+    return formDataToSearchParams(await request.formData());
   }
   const text = await request.text();
   if (!text) return {};
@@ -79,6 +83,14 @@ async function readPayload(request: Request): Promise<unknown> {
   } catch {
     return new URLSearchParams(text);
   }
+}
+
+function formDataToSearchParams(formData: FormData): URLSearchParams {
+  const params = new URLSearchParams();
+  formData.forEach((value, key) => {
+    params.append(key, typeof value === "string" ? value : value.name);
+  });
+  return params;
 }
 
 // Hash both inputs to a fixed-length digest before comparing so the comparison

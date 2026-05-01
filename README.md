@@ -65,7 +65,11 @@ export function Checkout() {
         item: { name: "Pro Plan", description: "Monthly", unitPrice: 19, currency: "USD", durationMonths: 1 },
       }),
     });
-    if (!res.ok) checkout.handleError(new Error(await res.text()));
+    if (!res.ok) {
+      checkout.handleError(new Error(await res.text()));
+      return;
+    }
+    checkout.handleSuccess();
   }
 
   return (
@@ -76,10 +80,7 @@ export function Checkout() {
       environment="production"
       language="he-IL"
       onTokenizationStart={checkout.handleStart}
-      onToken={(token) => {
-        checkout.handleToken(token);
-        return handleToken(token);
-      }}
+      onToken={handleToken}
       onError={checkout.handleError}
     >
       <button type="submit" disabled={checkout.status === "submitting"}>
@@ -141,7 +142,15 @@ export const POST = createSumitWebhookRoute({
 });
 ```
 
-Accepts JSON, `application/x-www-form-urlencoded`, and SUMIT's `json=<serialized>` envelope. Returns `200` on success, `401` when verification fails, `500` (without leaking the original error) when your handler throws.
+Accepts JSON, `application/x-www-form-urlencoded`, `multipart/form-data`, and SUMIT's `json=<serialized>` envelope. Returns `200` on success, `401` when verification fails, `500` (without leaking the original error) when your handler throws.
+
+By default, `verifySumitSharedSecret(secret)` accepts only the `x-sumit-secret` header. If an existing SUMIT trigger can only send a URL query secret, opt in explicitly:
+
+```ts
+verify: verifySumitSharedSecret(process.env.SUMIT_WEBHOOK_SECRET!, { queryParam: "secret" })
+```
+
+Header verification is preferred because query strings are commonly stored in access logs.
 
 ---
 
@@ -162,7 +171,7 @@ Accepts JSON, `application/x-www-form-urlencoded`, and SUMIT's `json=<serialized
 | --- | --- |
 | **Card data exposure** | SUMIT's `payments.js` reads card fields directly and returns a `SingleUseToken`. Card numbers, expiry, and CVV never reach your server or your component state. |
 | **Server credential leakage** | The full `apiKey` lives only in `createSumitChargeRoute`; `./client` and `./next` are separate exports so client bundles cannot transitively pull the server secret. |
-| **Webhook spoofing** | `verifySumitSharedSecret` hashes both the candidate and the secret to a fixed 32-byte digest before comparing — the comparison is constant-time **and** length-independent, so response timing leaks neither secret content nor secret length. |
+| **Webhook spoofing** | `verifySumitSharedSecret` checks the `x-sumit-secret` header by default and hashes both the candidate and the secret to a fixed 32-byte digest before comparing — the comparison is constant-time **and** length-independent, so response timing leaks neither secret content nor secret length. Query-string secrets are opt-in only because URLs commonly land in logs. |
 | **Double-submit / token reuse** | `<SumitCheckout />` uses a synchronous ref guard so two rapid submits cannot both fire `CreateToken` (single-use tokens are exactly that — single-use). |
 | **Logging sensitive data** | Every event the route helpers return passes through `redactSumitPayload` from `@digitizers/sumit-api`. |
 
@@ -177,7 +186,7 @@ SumitCheckout(props): JSX.Element
   props.requireCvv?, requireCitizenId?
   props.onToken, onError?, onTokenizationStart?, onTokenizationEnd?
   props.classNames?, style?, labels?
-useSumitCheckout(): { ref, status, error, token, submit, reset, handleToken, handleError, handleStart }
+useSumitCheckout(): { ref, status, error, token, submit, reset, handleToken, handleSuccess, handleError, handleStart, clearToken }
 loadSumitPayments(env?): Promise<SumitPaymentsSdk>
 createSingleUseToken(settings): Promise<string>
 

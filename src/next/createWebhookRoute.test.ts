@@ -97,10 +97,33 @@ describe("verifySumitSharedSecret", () => {
     expect(ok).toBe(true);
   });
 
-  it("accepts the secret from a query param", async () => {
+  it("rejects query-param secrets by default", async () => {
+    const verifier = verifySumitSharedSecret("s3cret");
+    const ok = await verifier(new Request("https://example.com/?secret=s3cret", { method: "POST" }));
+    expect(ok).toBe(false);
+  });
+
+  it("accepts the secret from a query param only when explicitly configured", async () => {
     const verifier = verifySumitSharedSecret("s3cret", { queryParam: "k" });
     const ok = await verifier(new Request("https://example.com/?k=s3cret", { method: "POST" }));
     expect(ok).toBe(true);
+  });
+
+  it("normalizes multipart form-data payloads", async () => {
+    const onEvent = vi.fn();
+    const handler = createSumitWebhookRoute({ onEvent });
+    const body = new FormData();
+    body.set("Payment.Status", "000");
+    body.set("Payment.ValidPayment", "true");
+    body.set("Payment.ID", "p1");
+    body.set("RecurringCustomerItemIDs[0]", "444");
+
+    const response = await handler(new Request("https://example.com/api/sumit/webhook", { method: "POST", body }));
+
+    expect(response.status).toBe(200);
+    const [event] = onEvent.mock.calls[0] as [{ eventType: string; paymentId?: string }];
+    expect(event.eventType).toBe("recurring.charged");
+    expect(event.paymentId).toBe("p1");
   });
 
   it("rejects mismatching secrets", async () => {
