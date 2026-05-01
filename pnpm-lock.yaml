@@ -8,7 +8,7 @@ importers:
 
   .:
     devDependencies:
-      '@digitizers/sumit-api':
+      '@godigitizer/sumit-api':
         specifier: file:../sumit-api
         version: file:../sumit-api
       '@testing-library/react':
@@ -50,9 +50,6 @@ packages:
     resolution: {integrity: sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==}
     engines: {node: '>=6.9.0'}
 
-  '@digitizers/sumit-api@file:../sumit-api':
-    resolution: {directory: ../sumit-api, type: directory}
-
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
 
@@ -61,6 +58,9 @@ packages:
 
   '@emnapi/wasi-threads@1.2.1':
     resolution: {integrity: sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w==}
+
+  '@godigitizer/sumit-api@file:../sumit-api':
+    resolution: {directory: ../sumit-api, type: directory}
 
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
@@ -590,8 +590,6 @@ snapshots:
 
   '@babel/runtime@7.29.2': {}
 
-  '@digitizers/sumit-api@file:../sumit-api': {}
-
   '@emnapi/core@1.10.0':
     dependencies:
       '@emnapi/wasi-threads': 1.2.1
@@ -607,6 +605,8 @@ snapshots:
     dependencies:
       tslib: 2.8.1
     optional: true
+
+  '@godigitizer/sumit-api@file:../sumit-api': {}
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
