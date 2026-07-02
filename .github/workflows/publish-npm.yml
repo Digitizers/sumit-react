@@ -21,18 +21,11 @@ concurrency:
 
 jobs:
   publish:
+    # workflow_dispatch can be launched from any ref — only main may publish.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sumit-react
-        uses: actions/checkout@v4
-        with:
-          path: sumit-react
-
-      - name: Checkout sumit-api peer package
-        uses: actions/checkout@v4
-        with:
-          repository: Digitizers/sumit-api
-          path: sumit-api
+      - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
@@ -43,44 +36,28 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
           cache: pnpm
-          cache-dependency-path: |
-            sumit-react/pnpm-lock.yaml
-            sumit-api/pnpm-lock.yaml
 
-      - name: Build sumit-api peer package
-        working-directory: sumit-api
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-
-      - name: Install sumit-react
-        working-directory: sumit-react
+      - name: Install
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        working-directory: sumit-react
         run: pnpm typecheck
 
       - name: Test
-        working-directory: sumit-react
         run: pnpm test
 
       - name: Build
-        working-directory: sumit-react
         run: pnpm build
 
       - name: Pack check
-        working-directory: sumit-react
         run: npm pack --dry-run
 
       - name: Verify npm token
-        working-directory: sumit-react
         run: npm whoami
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish public package
-        working-directory: sumit-react
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             npm publish --access public --dry-run
