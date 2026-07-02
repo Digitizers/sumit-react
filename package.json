@@ -1,6 +1,6 @@
 {
   "name": "sumit-react",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "React components and Next.js route helpers for SUMIT (formerly OfficeGuy) payments.",
   "license": "MIT",
   "type": "module",
@@ -48,17 +48,17 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "sumit-api": ">=0.2.0",
-    "react": ">=18.0.0"
+    "react": ">=18.0.0",
+    "sumit-api": ">=0.2.0"
   },
   "devDependencies": {
-    "sumit-api": "^0.4.0",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^20.19.35",
     "@types/react": "^19.0.0",
     "happy-dom": "^20.8.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "sumit-api": "^0.4.0",
     "typescript": "^5",
     "vitest": "^4.0.18"
   },
