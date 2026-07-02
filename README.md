@@ -6,7 +6,7 @@
 [![react](https://img.shields.io/badge/react-%E2%89%A518-61DAFB?logo=react&logoColor=white)](package.json)
 [![next](https://img.shields.io/badge/next.js-app%20router-000000?logo=next.js&logoColor=white)](https://nextjs.org)
 
-> React components and Next.js route helpers for [SUMIT](https://sumit.co.il) (formerly **OfficeGuy**) payments. The companion to [`sumit-api`](https://github.com/Digitizers/sumit-api).
+> React components and Next.js route helpers for [SUMIT](https://digitizer.li/sumit) (formerly **OfficeGuy**) payments. The companion to [`sumit-api`](https://github.com/Digitizers/sumit-api).
 >
 > SUMIT is the billing platform. The actual card clearing is performed by partner processors that SUMIT routes to — **Upay** is one such clearer, and SUMIT can integrate with others. From the perspective of this package, you talk to SUMIT; processor-level error codes (e.g. `Upay_*`) only show up inside SUMIT's response bodies.
 
