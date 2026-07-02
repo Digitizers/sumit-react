@@ -27,8 +27,8 @@ importers:
         specifier: ^19.0.0
         version: 19.2.5(react@19.2.5)
       sumit-api:
-        specifier: file:../sumit-api
-        version: file:../sumit-api
+        specifier: ^0.4.0
+        version: 0.4.0
       typescript:
         specifier: ^5
         version: 5.9.3
@@ -452,8 +452,8 @@ packages:
   std-env@4.1.0:
     resolution: {integrity: sha512-Rq7ybcX2RuC55r9oaPVEW7/xu3tj8u4GeBYHBWCychFtzMIr86A7e3PPEBPT37sHStKX3+TiX/Fr/ACmJLVlLQ==}
 
-  sumit-api@file:../sumit-api:
-    resolution: {directory: ../sumit-api, type: directory}
+  sumit-api@0.4.0:
+    resolution: {integrity: sha512-JByDGhq5qWFxklzqBqUviPyZ5yjAtTDu6GGm4mevK113uGeYbzhKalvW/xzAvhrqssqCTQDhZtuQorxpJtQB1Q==}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -919,7 +919,7 @@ snapshots:
 
   std-env@4.1.0: {}
 
-  sumit-api@file:../sumit-api: {}
+  sumit-api@0.4.0: {}
 
   tinybench@2.9.0: {}
 
