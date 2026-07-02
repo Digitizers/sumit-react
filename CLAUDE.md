@@ -47,6 +47,6 @@ pnpm typecheck    # tsc --noEmit
 pnpm build        # tsc → dist/
 ```
 
-Local development assumes `sumit-api` is checked out as a sibling directory (the `devDependencies` entry uses `file:../sumit-api`).
+The dev dependency on `sumit-api` installs from npm. To develop against a local checkout, clone it as a sibling directory and run `pnpm link ../sumit-api`.
 
 Branches: `fix/*`, `feat/*`, `chore/*`. PRs to `main`. Conventional-commit-ish messages.

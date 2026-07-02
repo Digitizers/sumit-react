@@ -52,11 +52,11 @@
     "react": ">=18.0.0"
   },
   "devDependencies": {
-    "sumit-api": "file:../sumit-api",
+    "sumit-api": "^0.4.0",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^20.19.35",
     "@types/react": "^19.0.0",
-    "happy-dom": "^15.11.7",
+    "happy-dom": "^20.8.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^5",

@@ -213,16 +213,6 @@ verifySumitSharedSecret(secret, options?): SumitWebhookVerifier
 
 ## Local development
 
-This package has `sumit-api` as a peer dependency. While `sumit-api` is being published to npm, the dev dependency in this repo points at `file:../sumit-api`, so cloning both repos as siblings is the supported local setup:
-
-```text
-~/code/
-├── sumit-api/        # https://github.com/Digitizers/sumit-api
-└── sumit-react/      # this repo
-```
-
-Then:
-
 ```bash
 pnpm install
 pnpm typecheck    # tsc --noEmit
@@ -230,7 +220,11 @@ pnpm test         # vitest run
 pnpm build        # tsc → dist/
 ```
 
-Once `sumit-api` is published, the dev dependency will switch to a regular semver range and CI will install it from the registry.
+This package has [`sumit-api`](https://www.npmjs.com/package/sumit-api) as a peer dependency; the dev dependency installs it from npm. To develop against a local checkout instead, clone [`sumit-api`](https://github.com/Digitizers/sumit-api) as a sibling directory and link it:
+
+```bash
+pnpm link ../sumit-api
+```
 
 ---
 
