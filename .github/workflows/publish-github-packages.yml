@@ -22,60 +22,39 @@ concurrency:
 
 jobs:
   publish:
+    # workflow_dispatch can be launched from any ref — only main may publish.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sumit-react
-        uses: actions/checkout@v4
-        with:
-          path: sumit-react
-
-      - name: Checkout sumit-api peer package
-        uses: actions/checkout@v4
-        with:
-          repository: Digitizers/sumit-api
-          path: sumit-api
+      - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
           version: 10.26.0
 
+      # No registry-url here: install must resolve from npmjs. The publish step
+      # below configures the GitHub Packages registry and auth itself.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: |
-            sumit-react/pnpm-lock.yaml
-            sumit-api/pnpm-lock.yaml
-          registry-url: https://npm.pkg.github.com
 
-      - name: Build sumit-api peer package
-        working-directory: sumit-api
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-
-      - name: Install sumit-react
-        working-directory: sumit-react
+      - name: Install
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        working-directory: sumit-react
         run: pnpm typecheck
 
       - name: Test
-        working-directory: sumit-react
         run: pnpm test
 
       - name: Build
-        working-directory: sumit-react
         run: pnpm build
 
       - name: Pack check
-        working-directory: sumit-react
         run: npm pack --dry-run
 
       - name: Build GitHub Packages tarball directory
-        working-directory: sumit-react
         run: |
           set -euo pipefail
           PACK_JSON=$(npm pack --json --ignore-scripts)
@@ -96,7 +75,7 @@ jobs:
           NODE
 
       - name: Publish scoped package to GitHub Packages
-        working-directory: sumit-react/.publish-ghpkg
+        working-directory: .publish-ghpkg
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
