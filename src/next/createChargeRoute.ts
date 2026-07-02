@@ -61,7 +61,9 @@ export function createSumitChargeRoute(config: SumitChargeRouteConfig): SumitCha
   const mode: SumitChargeMode = config.mode ?? "recurring";
   // JS consumers can pass any string; an unknown mode would otherwise resolve
   // `DEFAULT_PATHS[mode]` to undefined and target `…co.ilundefined` at runtime.
-  if (!(mode in DEFAULT_PATHS)) {
+  // Explicit comparison rather than `in`, which would accept prototype keys
+  // like "toString".
+  if (mode !== "recurring" && mode !== "oneOff") {
     throw new Error(`sumit-react: unknown charge mode "${String(mode)}" — expected "recurring" or "oneOff".`);
   }
   const baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");

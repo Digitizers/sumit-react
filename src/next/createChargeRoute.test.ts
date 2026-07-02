@@ -33,6 +33,12 @@ describe("createSumitChargeRoute", () => {
     );
   });
 
+  it("rejects prototype keys as modes", () => {
+    expect(() => createSumitChargeRoute({ companyId: 1, apiKey: "k", mode: "toString" as never })).toThrow(
+      /unknown charge mode "toString"/,
+    );
+  });
+
   it("returns 400 when body is invalid JSON", async () => {
     const handler = createSumitChargeRoute({ companyId: 1, apiKey: "k" });
     const response = await handler(
