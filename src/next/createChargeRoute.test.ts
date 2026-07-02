@@ -27,6 +27,12 @@ function jsonRequest(body: unknown): Request {
 }
 
 describe("createSumitChargeRoute", () => {
+  it("throws at creation time for an unknown mode", () => {
+    expect(() => createSumitChargeRoute({ companyId: 1, apiKey: "k", mode: "oneoff" as never })).toThrow(
+      /unknown charge mode "oneoff"/,
+    );
+  });
+
   it("returns 400 when body is invalid JSON", async () => {
     const handler = createSumitChargeRoute({ companyId: 1, apiKey: "k" });
     const response = await handler(

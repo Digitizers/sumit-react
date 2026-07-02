@@ -1,5 +1,6 @@
 export { createSumitChargeRoute } from "./createChargeRoute.js";
 export type {
+  SumitChargeMode,
   SumitChargeRouteConfig,
   SumitChargeRouteHandler,
   SumitChargeRequestBody,
