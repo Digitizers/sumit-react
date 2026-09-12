@@ -47,6 +47,8 @@ pnpm typecheck    # tsc --noEmit
 pnpm build        # tsc → dist/
 ```
 
+**Development needs Node 22.12 or newer** (see `.nvmrc`): Vitest 5 declares `^22.12.0 || ^24.0.0 || >=26.0.0`, so Node 20 and every 22.x below 22.12 fail to run the suite. This is a toolchain requirement only; consumers of the published package are unaffected.
+
 The dev dependency on `sumit-api` installs from npm. To develop against a local checkout, clone it as a sibling directory and run `pnpm link ../sumit-api`.
 
 Branches: `fix/*`, `feat/*`, `chore/*`. PRs to `main`. Conventional-commit-ish messages.
