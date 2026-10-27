@@ -60,7 +60,7 @@
     "react-dom": "^19.0.0",
     "sumit-api": "^0.4.0",
     "typescript": "^5",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.3"
   },
   "publishConfig": {
     "access": "public"
